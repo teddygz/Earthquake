@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- the mapbox libraries -->
+		<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+        <script src='https://api.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
+        <link href='https://api.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
+   		<script src='mapbox-gl.js'></script>
+		<link href='mapbox-gl.css' rel='stylesheet' />
+		<style>
+        body { margin:0; padding:0; background:#191a1a;}
+        #map { position:absolute; top:0; bottom:0; right:0; left:360px; }
+        .bottommapclass {position:relative; top:0; bottom:0; right:0; left:360px;}
+        .mapboxgl-ctrl.mapboxgl-ctrl-attrib { background-color:rgba(0,0,0,0.5); }
+        .mapboxgl-ctrl.mapboxgl-ctrl-attrib a { color:#fff; }
+
+        #sidebar {height:100%; left:0px; width:360px; color:white; overflow:scroll; overflow-x:hidden; background:#222;}
+        #sidebar::-webkit-scrollbar { width: 0 !important }
+        .mapboxgl-popup-content {padding:10px; background:rgba(0,0,0,0.75); color:#fff; pointer-events:none;}
+        .scroller{
+            position:absolute;
+            top:87px;
+            bottom:0px;
+            overflow:scroll;
+        }
+        .mapboxgl-popup-anchor-bottom {margin-top:-10px;}
+        .mapboxgl-popup-anchor-top {margin-top:10px;}
+        .mapboxgl-popup-anchor-left {margin-right:-10px;}
+        .mapboxgl-popup-anchor-right {margin-right:10px;}
+
+        .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {border-top-color:rgba(0,0,0,0.75); }
+        .mapboxgl-popup-anchor-top .mapboxgl-popup-tip {border-bottom-color:rgba(0,0,0,0.75); }
+        .mapboxgl-popup-anchor-left .mapboxgl-popup-tip {border-right-color:rgba(0,0,0,0.75);}
+        .mapboxgl-popup-anchor-right .mapboxgl-popup-tip {border-left-color:rgba(0,0,0,0.75);}
+
+        .mapboxgl-ctrl-group {
+            -webkit-filter: invert(100%);
+        }
+        .mapboxgl-popup {pointer-events:none;}
+        h2.mag {
+            margin-right:10px;
+            color:steelblue;
+        }
+          #restore {
+            display: none;
+          }
+        .count {color:steelblue;
+            font-size: 2.5em;
+            line-height: 1.1em;
+            text-align:center;
+            padding-right:10px;
+        }
+        .entry {height:80px; width:360px; cursor:pointer; position:relative; opacity:0.8;}
+        .entry:hover {opacity:1;}
+        h2 {margin:10px 10px 10px 0px; padding-bottom:0px; padding-top:0px; line-height:1em;}
+        .translucent {opacity:0.75;}
+        .darkback {
+            background:rgba(0,0,0,0.7);
+        }
+        .code {
+            padding:2px 5px;
+        }
+
+        .loader {
+            background:rgba(0,0,0,0.7);
+            width:100%;
+            height:100%;
+            color:white;
+            position:absolute;
+            text-align: center;
+            line-height: 9em;
+            font-size:2em;
+            z-index:999;
+        }
+
+        @media (max-width: 600px) {
+          #sidebar {
+            display: none;
+          }
+
+          #map {
+            left:0px;
+          }
+        }
+        </style>
+	</head>
+
+	<body>
+		<!-- the div for the map -->
+		<div id='sidebar' class=''>
+    <div class='pad2 clearfix'>
+        <div class='count strong col4 odometer' id='odometer'>0000</div> 
+        <div class='col8'>tremors detected worldwide over the past <select style='margin-left:6px'></select></div>
+    </div>
+   
+</div>
+    <div id='map' class='clearfix'>
+    <div id='bottommap' class='bottommapclass'></div>
+    
+<a class='pin-bottomleft z1 pad1' target='_blank' href='https://www.mapbox.com/'>
+  <img src='data:image/svg+xml;base64,PHN2ZyB4bWxuczpzdmc9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZlcnNpb249IjEuMSIgeD0iMCIgeT0iMCIgd2lkdGg9IjU5LjEiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCA1OS4xIDE4IiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCA1OS4xMTkgMTgiIHhtbDpzcGFjZT0icHJlc2VydmUiPjxwYXRoIGQ9Ik0xLjQgMEMwLjYgMC4xIDAgMC44IDAgMS41TDAgMTMuNEMwIDE0LjIgMC43IDE0LjggMS41IDE0LjhMMy4zIDE0LjhDNCAxNC44IDQuNyAxNC4yIDQuOCAxMy40TDQuOCA5LjEgNS41IDEwLjNDNiAxMS4yIDcuNSAxMS4yIDggMTAuM0w4LjggOS4xIDguOCAxMy40QzguOCAxNC4xIDkuNSAxNC44IDEwLjIgMTQuOEwxMiAxNC44QzEyLjggMTQuOCAxMy41IDE0LjIgMTMuNSAxMy40TDEzLjUgMTMuMkMxNC41IDE0LjMgMTUuOSAxNSAxNy42IDE1TDIxLjcgMTUgMjEuNyAxNi41QzIxLjcgMTcuMyAyMi4zIDE4IDIzLjEgMThMMjQuOSAxOEMyNS43IDE4IDI2LjQgMTcuMyAyNi40IDE2LjVMMjYuNCAxNUMyOC4xIDE1IDI5LjUgMTQuNCAzMC41IDEzLjNMMzAuNSAxMy41QzMwLjUgMTMuOSAzMC43IDE0LjMgMzEgMTQuNiAzMS4zIDE0LjkgMzEuNiAxNSAzMiAxNUwzNS4zIDE1QzM3LjQgMTUgMzkuMiAxNCA0MC4zIDEyLjMgNDEuMyAxMy45IDQzLjEgMTUgNDUuMSAxNSA0Ni4yIDE1IDQ3LjEgMTQuOCA0Ny45IDE0LjMgNDguMiAxNC42IDQ4LjcgMTQuOCA0OS4xIDE0LjhMNTEuMyAxNC44QzUxLjcgMTQuOCA1Mi4yIDE0LjYgNTIuNSAxNC4yTDUzLjQgMTIuOSA1NC4zIDE0LjJDNTQuNiAxNC42IDU1LjEgMTQuOCA1NS41IDE0LjhMNTcuNyAxNC44QzU4LjggMTQuOCA1OS41IDEzLjQgNTguOSAxMi41TDU2LjMgOC45IDU4LjcgNS41QzU5LjQgNC42IDU4LjYgMy4xIDU3LjUgMy4xTDU1LjMgMy4xQzU0LjkgMy4xIDU0LjQgMy40IDU0LjEgMy44TDUzLjQgNC44IDUyLjcgMy44QzUyLjQgMy40IDUxLjkgMy4xIDUxLjQgMy4xTDQ5LjMgMy4xQzQ4LjggMy4xIDQ4LjMgMy40IDQ4IDMuOCA0Ny4yIDMuMyA0Ni4yIDMgNDUuMSAzIDQzLjEgMyA0MS4zIDQuMSA0MC4yIDUuNyAzOS4yIDQgMzcuNCAzIDM1LjMgM0wzNS4zIDEuNUMzNS4zIDEuMSAzNS4xIDAuNyAzNC44IDAuNCAzNC42IDAuMiAzNC4yIDAgMzMuOCAwTDMyIDBDMzEuMyAwIDMwLjUgMC44IDMwLjUgMS41TDMwLjUgNC43QzI5LjUgMy42IDI4LjEgMyAyNi41IDNMMjMuMSAzQzIyLjQgMyAyMS43IDMuNyAyMS43IDQuNUwyMS43IDQuOEMyMC42IDMuNyAxOS4yIDMgMTcuNiAzIDE1LjkgMyAxNC41IDMuNyAxMy41IDQuOEwxMy41IDEuNUMxMy41IDAuNyAxMi44IDAgMTIgMEwxMC42IDBDOS42IDAgOC40IDAuNCA3LjggMS40TDYuOCAzLjEgNS44IDEuNEM1LjEgMC40IDMuOSAwIDIuOSAwTDEuNSAwIDEuNCAwek0xLjUgMS41TDIuOSAxLjVDMy42IDEuNSA0LjIgMS43IDQuNSAyLjJMNi44IDYuMSA5IDIuMkM5LjMgMS43IDkuOSAxLjUgMTAuNiAxLjVMMTIgMS41IDEyIDEzLjUgMTAuMiAxMy41IDEwLjIgMy42IDYuOCA5LjUgMy4zIDMuNiAzLjMgMTMuNSAxLjUgMTMuNSAxLjUgMS41ek0zMi4xIDEuNUwzMy44IDEuNSAzMy44IDQuNUMzNC40IDQuNSAzNC44IDQuNSAzNS4zIDQuNSAzNy44IDQuNSAzOS43IDYuNCAzOS43IDkgMzkuNyAxMS42IDM3LjggMTMuNSAzNS4zIDEzLjVMMzIuMSAxMy41IDMyLjEgMS41ek0xNy42IDQuNUMyMCA0LjUgMjEuOCA2LjQgMjEuOCA5TDIxLjggMTMuNSAxNy42IDEzLjVDMTUuMSAxMy41IDEzLjQgMTEuNiAxMy40IDkgMTMuNCA2LjQgMTUuMSA0LjUgMTcuNiA0LjV6TTQ1LjEgNC41QzQ3LjUgNC41IDQ5LjUgNi41IDQ5LjUgOSA0OS41IDExLjUgNDcuNSAxMy41IDQ1LjEgMTMuNSA0Mi43IDEzLjUgNDAuNyAxMS41IDQwLjcgOSA0MC43IDYuNSA0Mi43IDQuNSA0NS4xIDQuNXpNMjMuMSA0LjVMMjYuNSA0LjVDMjguOSA0LjUgMzAuOCA2LjQgMzAuOCA5IDMwLjggMTEuNiAyOC45IDEzLjUgMjYuNSAxMy41TDI0LjkgMTMuNSAyNC45IDE2LjUgMjMuMSAxNi41IDIzLjEgNC41ek00OS4zIDQuNUw1MS40IDQuNSA1My40IDcuMyA1NS4zIDQuNSA1Ny41IDQuNSA1NC41IDguOSA1Ny43IDEzLjUgNTUuNSAxMy41IDUzLjQgMTAuNCA1MS4yIDEzLjUgNDkuMSAxMy41IDUyLjMgOC45IDQ5LjMgNC41ek0xNy42IDYuMkMxNi4yIDYuMiAxNS4xIDcuNCAxNS4xIDkgMTUuMSAxMC42IDE2LjIgMTEuOCAxNy42IDExLjhMMjAgMTEuOCAyMCA5QzIwIDcuNCAxOSA2LjIgMTcuNiA2LjJ6TTQ1LjEgNi4yQzQzLjcgNi4yIDQyLjUgNy41IDQyLjUgOSA0Mi41IDEwLjUgNDMuNyAxMS44IDQ1LjEgMTEuOCA0Ni42IDExLjggNDcuNyAxMC41IDQ3LjcgOSA0Ny43IDcuNSA0Ni42IDYuMiA0NS4xIDYuMnpNMjQuOSA2LjNMMjQuOSAxMS44IDI2LjUgMTEuOEMyNy45IDExLjggMjkuMSAxMC41IDI5LjEgOSAyOS4xIDcuNSAyOC4xIDYuMyAyNi41IDYuM0wyNC45IDYuM3pNMzMuOCA2LjNMMzMuOCAxMS44IDM1LjMgMTEuOEMzNi45IDExLjggMzggMTAuNSAzOCA5IDM4IDcuNSAzNi44IDYuMyAzNS4zIDYuM0wzMy44IDYuM3pNMTcuNiA3LjdDMTguMSA3LjcgMTguNSA4LjEgMTguNSA5TDE4LjUgMTAuMyAxNy42IDEwLjNDMTcgMTAuMyAxNi42IDkuOSAxNi42IDkgMTYuNiA4LjEgMTcgNy43IDE3LjYgNy43ek0yNi40IDcuN0MyNy4yIDcuNyAyNy42IDguNCAyNy42IDkgMjcuNiA5LjkgMjYuOSAxMC4zIDI2LjQgMTAuM0wyNi40IDcuN3pNMzUuMSA3LjdDMzUuOCA3LjcgMzYuNSA4LjMgMzYuNSA5IDM2LjUgOS44IDM1LjkgMTAuMyAzNS4xIDEwLjNMMzUuMSA3Ljd6TTQ1LjEgNy43QzQ1LjcgNy43IDQ2LjIgOC4yIDQ2LjIgOSA0Ni4yIDkuOCA0NS43IDEwLjMgNDUuMSAxMC4zIDQ0LjUgMTAuMyA0NCA5LjggNDQgOSA0NCA4LjIgNDQuNSA3LjcgNDUuMSA3Ljd6IiBvcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJtMS41IDEuNSAwIDEyIDEuOCAwIDAtOS45IDMuNSA1LjkgMy41LTUuOSAwIDkuOSAxLjggMCAwLTEyLTEuNCAwQzkuOSAxLjUgOS4zIDEuNyA5IDIuMkw2LjggNi4xIDQuNSAyLjJDNC4yIDEuNyAzLjYgMS41IDIuOSAxLjVMMS41IDEuNVptMzAuNiAwIDAgMTIgMy4zIDBjMi40IDAgNC40LTEuOSA0LjQtNC41IDAtMi42LTEuOS00LjUtNC40LTQuNS0wLjUgMC0wLjkgMC0xLjUgMGwwLTMtMS43IDB6TTE3LjYgNC41Yy0yLjQgMC00LjIgMS45LTQuMiA0LjUgMCAyLjYgMS44IDQuNSA0LjIgNC41bDQuMiAwTDIxLjggOWMwLTIuNi0xLjctNC41LTQuMi00LjV6bTI3LjYgMGMtMi40IDAtNC40IDItNC40IDQuNSAwIDIuNSAyIDQuNSA0LjQgNC41IDIuNCAwIDQuMy0yIDQuMy00LjUgMC0yLjUtMS45LTQuNS00LjMtNC41em0tMjIgMCAwIDEyIDEuOCAwIDAtMyAxLjYgMGMyLjQgMCA0LjMtMS45IDQuMy00LjUgMC0yLjYtMS45LTQuNS00LjMtNC41bC0zLjMgMHptMjYuMiAwIDMgNC40LTMuMiA0LjYgMi4xIDAgMi4yLTMuMSAyLjEgMy4xIDIuMiAwTDU0LjUgOC45IDU3LjUgNC41IDU1LjMgNC41IDUzLjQgNy4zIDUxLjQgNC41IDQ5LjMgNC41Wk0xNy42IDYuMkMxOSA2LjIgMjAgNy40IDIwIDlsMCAyLjgtMi40IDBjLTEuNCAwLTIuNC0xLjItMi40LTIuOCAwLTEuNiAxLTIuOCAyLjQtMi44em0yNy42IDBjMS40IDAgMi42IDEuMiAyLjYgMi44IDAgMS41LTEuMiAyLjgtMi42IDIuOEM0My43IDExLjggNDIuNSAxMC41IDQyLjUgOWMwLTEuNSAxLjItMi44IDIuNi0yLjh6bS0yMC4yIDAgMS42IDBjMS42IDAgMi42IDEuMyAyLjYgMi44IDAgMS41LTEuMSAyLjgtMi42IDIuOGwtMS42IDAgMC01LjV6bTkgMCAxLjUgMGMxLjUgMCAyLjYgMS4zIDIuNiAyLjggMCAxLjUtMSAyLjgtMi42IDIuOGwtMS41IDAgMC01LjV6IiBmaWxsPSIjZmZmIi8+PC9zdmc+' alt='Mapbox' />
+</a>
+
+</div>
+
+
+		<!-- note the style is in-line, we have been putting it in the header. Outcome is the same -->
+		
+		<!-- the script that controls the map -->
+		<script>
+            
+			//my Mapbox token
+			mapboxgl.accessToken = 'pk.eyJ1IjoidGVkZHl6IiwiYSI6ImNqb2dtZjNvZTBncHQza3FmNDIzbnJkeXcifQ.iFDwLxhGxAthArD-J01jiA';
+			
+			//The map variable
+			var map = new mapboxgl.Map({
+			    container: 'map',
+			    style: 'mapbox://styles/teddyz/cjogrrwpt0rwp2rlyfeo0h8oq',
+                //style: 'mapbox://styles/teddyz/cjogpqy6ib17t2sle2aokhgcz',
+             
+			});
+            
+			//set the center & zoom of the map
+			map.setCenter([-122, 45]);
+			map.setZoom(2);
+
+            // Second Map
+            var map = new mapboxgl.Map({
+			    container: 'bottommap',
+			    style: 'mapbox://styles/teddyz/cjogrrwpt0rwp2rlyfeo0h8oq',
+                //style: 'mapbox://styles/teddyz/cjogpqy6ib17t2sle2aokhgcz',
+             
+			});
+            // Add zoom and rotation controls to the map.
+map.addControl(new mapboxgl.NavigationControl()); 
+
+			//on map load, do some stuff
+			map.on('load', function(){
+				//add a source layer for earthquakes
+				map.addSource('earthquakes', {
+			        "type": "geojson",
+			        "data": "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
+			    });
+                
+                
+        map.addLayer({
+						"id":"equakes",
+						"type":"circle",
+						"source":"earthquakes",
+                        "icon-size": 0.25,
+						"paint": {
+							"circle-color": "#FF0000",
+							"circle-opacity": 0.5,
+							"circle-radius": 10,
+							"circle-stroke-color": '#FF0000',
+							"circle-stroke-width": 1,
+							"circle-stroke-opacity": 0.75
+						},
+         
+        
+					});
+
+        map.addSource('california', {
+			        "type": "geojson",
+			        "data": "https://github.com/teddygz/lab4/blob/master/california.geojson"
+			    });
+                
+                
+        map.addLayer({
+						"id":"california",
+						"type":"fill",
+						"source":{
+                           " type":"geojson",
+                           "data": {
+                               "type": "Feature",
+                               "geometry": {
+                                   "type": "Polygon"
+                               }
+                           }
+                        },
+        
+					});
+    });
+//			    //add the earthquakes to the map
+//			    map.addLayer({
+//			    	"id":"equakes",
+//			    	"type":"circle",
+//			    	"source":"earthquakes"
+//			    });
+                
+     
+                
+				//add a handler for clicking/popups 
+				//Thanks to: https://www.mapbox.com/mapbox-gl-js/example/popup-on-click/ 
+				map.on('click', 'equakes', function (e) {
+			        var coordinates = e.features[0].geometry.coordinates.slice();
+			        //print the properties to the console when clicked
+			        console.log(e.features[0].properties);
+			        //THE HTML ELEMENT THAT WILL GO IN THE POPUP
+			        var description = "<p>Magnitude: " + e.features[0].properties.mag + "</p> <p>Type: " + e.features[0].properties.type + "</p> <p>Detail: " + e.features[0].properties.title +  "</p><br> URL: <a href="+e.features[0].properties.url+">USGS Details</a>";
+                    console.log(description);
+			        //var description = e.features[0].properties.mag;
+
+			        // Ensure that if the map is zoomed out such that multiple
+			        // copies of the feature are visible, the popup appears
+			        // over the copy being pointed to.
+			        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+			            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+			        }
+			        //make the popup
+			        new mapboxgl.Popup()
+			            .setLngLat(coordinates)
+			            .setHTML(description)
+			            .addTo(map);
+
+			    });
+			    map.setCenter([-122, 47]);
+            
+		
+           
+		</script>
+	</body>
+</html>
